@@ -7,10 +7,8 @@ Created on Tue Feb 26 14:55:35 2019
 import numpy as np
 import networkx as nx
 
-
-
 w = 15
-lam = 0.5 # Social ostracism coupling
+lam = 0.1 # Social ostracism coupling
 
 # Resource stock parameters
 c, d, q = 50, 50, 1
@@ -19,28 +17,14 @@ delta = 0.3
 # Max resource capacity
 Rmax = 250
 
-#Population
-pop = 50
+# Social parameters
+mu = 1.2
+ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
+ed = mu*ec
 
-
-# ----------------------
-# Functions for TSL Model
-# ----------------------
-
-def colourNetwork(G, cutoff):
-    colours = []
-    for k in range(nx.number_of_nodes(G)):
-        if G.nodes[k]['type'] == 'social':
-            if G.nodes[k]['fc'] > cutoff:
-                colours.append('b')
-            else:
-                colours.append('r')
-        else: 
-            colours.append('g')
-    return colours
-
-
-
+def ext(f,pop):
+    E = pop*(f*ec+(1-f)*ed)
+    return E
 
 # Ostracism function (Gompertz growth)
 def gompertz(f):
@@ -60,13 +44,100 @@ def cobbdoug(E,R):
     product = gamma*(E**a)*(R**b)
     return product
 
+def countCoops(G,k):
+    #Calculate fraction of cooperators in the neighbourhood of a node
+    #Get neighbouring nodes
+    groups = [n for n in G.nodes() if G.nodes[n]['type'] == 'social']
+
+    neighbours = [j for j in G.neighbors(k)]
+    communities = set(groups).intersection(neighbours)
+    
+    if G.nodes[k]['type'] == 'social':
+        nebCoops = [G.nodes[j]['fc'] for j in communities]
+        fc = (sum(nebCoops) + G.nodes[k]['fc'])/(len(nebCoops) + 1)
+        totalPop = sum([G.nodes[j]['pop'] for j in communities]) + G.nodes[k]['pop']
+    else:
+        if len(communities) == 0:
+            fc = 0
+            totalPop = 0
+        else:
+            nebCoops = [G.nodes[j]['fc'] for j in communities]
+            fc = sum(nebCoops)/len(communities)
+            totalPop = sum([G.nodes[j]['pop'] for j in communities])
+
+    return (fc, totalPop)
+
+
+def countFrac(G):
+    # List of cooperator populations
+    groups = [n for n in G.nodes() if G.nodes[n]['type'] == 'social']
+    population = 0
+    for k in groups:
+        pop = G.nodes[k]['pop']
+        population += pop
+    
+
+    coopPops = []
+    for k in groups:
+        coopPops.append(G.nodes[k]['fc']*G.nodes[k]['pop'])
+        
+    totalCoops = sum(coopPops)
+    totalFc = totalCoops/population
+    return totalFc
+
+def payoffNode(G,k):
+    #Calculate the payoffs for cooperators and defectors in chosen node
+    resources = [n for n in G.nodes() if G.nodes[n]['type'] == 'ecological']
+
+    fc = G.nodes[k]['fc']
+    pop = G.nodes[k]['pop']
+    #Extraction effort
+    E = ext(fc, pop)
+    #Local resource
+    extracting = set(resources).intersection([j for j in G.neighbors(k)])
+    R = sum([G.nodes[j]['stock'] for j in extracting])
+    
+    pic = ec*((cobbdoug(E,R)/E)-w)
+    pid = ed*((cobbdoug(E,R)/E)-w)
+    
+    return (pic, pid)
+    
+
+def utilNode(G, k):
+    # Calculate payoffs for cooperators and defectors
+    # within a given node in network
+    groups = [n for n in G.nodes() if G.nodes[n]['type'] == 'social']
+
+    fc = G.nodes[k]['fc']
+    neighbours = [j for j in G.neighbors(k)]
+    nebs = set(groups).intersection(neighbours)
+    nebs = list(nebs)
+        
+    pic, pid = payoffNode(G, k)
+
+    H = (pid-pic)/pid
+    #Need to calculate H for external communities
+    Hs = []
+    for neb in nebs:
+        nebc, nebd = payoffNode(G,neb)
+        nebH = (nebd-nebc)/nebd
+        Hs.append(nebH)
+        
+    nebFcs = [G.nodes[j]['fc'] for j in nebs]
+    gomps = list(map(gompertz, nebFcs))
+    prods = [j*k for j in Hs for k in gomps]
+    #Utilities
+    uc = pic
+    ud = pid - H*(1-lam/2)*gompertz(fc)-(lam/2)*sum(prods) 
+        
+    return (uc,ud)
     
     
 
 # -------------------------
 # -------------------------
 
-def TSL(G, cheatMod):
+def TSL(G):
     # G = input network 
     # (must be bimodal with 'type' = 'social' and 'ecological')
     # Runs TSL model on given network
@@ -78,88 +149,19 @@ def TSL(G, cheatMod):
     groups = set(groups)
     resources = set(resources)
     
-    # Social parameters
-    mu = cheatMod
-    ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
-    ed = mu*ec
-
-    # Populate social nodes and their level of cooperation
-    # Each social node has some population of extractors
-    # Preassign proportion of extractors within community that are cooperating
 
     t = 0
-    tEnd = 200 #end point
+    tEnd = 400 #end point
     dt = 0.1 #time step
     # Lists to store values to plot later
     time = [0]
 
-    tempR = []
-    for k in resources:
-        node = k
-        stock = G.nodes[k]['stock']
-        tempR.append((node, stock))
-    
-    rHistory = {node:[s] for (node, s) in tempR}
+    #rHistory = {node:[s] for (node, s) in tempR}
 
-    tempF = []
-    for k in groups:
-        node = k
-        frac = G.nodes[k]['fc']
-        tempF.append((node, frac))
 
-    fHistory = {node:[s] for (node, s) in tempF}
+    #fHistory = {node:[s] for (node, s) in tempF}
     
-    # Define functions to count cooperators in a neighbourhood of a given node
-    # Function dependent on network, need to know which nodes are social and
-    # which are ecological
-    def countCoops(G,k):
-        neighbours = [j for j in G.neighbors(k)]
-        communities = groups.intersection(neighbours)
-        if G.nodes[k]['type'] == 'social':
-            nebCoops = [G.nodes[j]['fc'] for j in communities]
-            fc = (sum(nebCoops) + G.nodes[k]['fc'])/(len(nebCoops) + 1)
-            totalPop = sum([G.nodes[j]['pop'] for j in communities]) + G.nodes[k]['pop']
-        else:
-            if len(communities) == 0:
-                fc = 0
-                totalPop = 0
-            else:
-                nebCoops = [G.nodes[j]['fc'] for j in communities]
-                fc = sum(nebCoops)/len(communities)
-                totalPop = sum([G.nodes[j]['pop'] for j in communities])
-        
-        return (fc, totalPop)
-    
-    # Calculate utility of a node in given network
-    def ext(f,pop):
-        E = pop*(f*ec+(1-f)*ed)
-        return E
-    
-    def utilNode(G, k):
-        # Calculate payoffs for cooperators and defectors
-        # within a given node in network
-        fc = G.nodes[k]['fc']
-        pop = G.nodes[k]['pop']
-        fcNebs = countCoops(G,k)[0]
-    
-        # Node effort
-        E = ext(fc,pop)
-    
-    # How much is this community extracting in total?
-        extracting = resources.intersection([j for j in G.neighbors(k)])
-        R = sum([G.nodes[j]['stock'] for j in extracting])
-    
-        #Payoffs
-        pic = ec*((cobbdoug(E,R)/E)-w)
-        pid = ed*((cobbdoug(E,R)/E)-w)
-        H = (pid-pic)/pid
-    
-        #Utilities
-        uc = pic
-        ud = pid - H*(gompertz(fc)+lam*gompertz(fcNebs))
-        
-        return (uc,ud)
-    
+    fTotal = [countFrac(G)]
 
     while t<tEnd:
     
@@ -176,7 +178,7 @@ def TSL(G, cheatMod):
         
             F += dfc
             G.nodes[k]['fc'] += dfc
-            fHistory[k].append(F)
+            #fHistory[k].append(F)
     
         # Update resources
         # List to store present resource stocks
@@ -188,20 +190,25 @@ def TSL(G, cheatMod):
 
             dRself = c - d*(R/Rmax)**2 - q*ext(fc, nebs)*R
             nebResources = resources.intersection([j for j in G.neighbors(k)])
-            differences = [delta*(G.nodes[j]['stock'] - R)  for j in nebResources]
+            differences = []
+            
+            for j in nebResources:
+                diff = delta*(G.nodes[j]['stock']-R)
+                G.nodes[j]['stock'] += -diff
+                differences.append(diff)
+
             inOutFlow = sum(differences)
             dR = (dRself + inOutFlow)*dt
         
             R += dR
             G.nodes[k]['stock'] += dR
-            rHistory[k].append(R)
+            #rHistory[k].append(R)
 
         #update quantities
-    
+        fTotal.append(countFrac(G))
         t += dt
         time.append(t)
         
-
-
         
-    return (time, rHistory, fHistory)
+    return (time, fTotal)
+

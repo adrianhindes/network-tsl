@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Feb 26 14:55:35 2019
-
-@author: hindesa
-"""
+# -*- coding: utf-8 -*-#
 import random
 import numpy as np
 import matplotlib.pyplot as plt

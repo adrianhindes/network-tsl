@@ -8,8 +8,7 @@ import networkx as nx
 import numpy as np
 import itertools
 import networkx.algorithms.isomorphism as iso
-
-
+from tqdm import tqdm
 motifsLinks = {
         'IA': [(0,3), (1,2)],
         'IB': [(0,1), (0,3), (1,2)], 
@@ -44,15 +43,15 @@ motifsLinks = {
 motifs = {}
 
 for k in motifsLinks.keys():
-    G = nx.Graph()
-    G.add_nodes_from([0,1,2,3])
-    G.nodes[0]['type'] = 'social'
-    G.nodes[1]['type'] = 'social'
-    G.nodes[2]['type'] = 'ecological'
-    G.nodes[3]['type'] = 'ecological'
+    Gr = nx.Graph()
+    Gr.add_nodes_from([0,1,2,3])
+    Gr.nodes[0]['type'] = 'social'
+    Gr.nodes[1]['type'] = 'social'
+    Gr.nodes[2]['type'] = 'ecological'
+    Gr.nodes[3]['type'] = 'ecological'
     
-    G.add_edges_from(motifsLinks[k])
-    motifs[k] = G
+    Gr.add_edges_from(motifsLinks[k])
+    motifs[k] = Gr
     
 nm = iso.categorical_node_match('type', ['social','resource'])
 
@@ -68,8 +67,12 @@ def mcounter(G, motifs):
     quads = list(itertools.product(*[actors, actors, resources, resources]))
     # Filter duplicates
     quads = [list(mot) for mot in quads if len(set(mot)) == 4]
+        #Filter repeated entries
+    quads = map(list, map(np.sort,quads))
+    fquads = []
+    [fquads.append(quad) for quad in quads if not fquads.count(quad)]
     
-    for q in quads:
+    for q in fquads:
         subg = G.subgraph(q)
         matches = [net for net in motifs if nx.is_isomorphic(subg,motifs[net],node_match=nm)]
         if not len(matches) == 1:

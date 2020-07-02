@@ -17,12 +17,12 @@ mu = 1.2
 ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
 ed = mu*ec
 w = 15
-lam = 0.6 # Social ostracism coupling
+lam = 0.05 # Social ostracism coupling
 
 # Resource stock parameters
 c, d, q = 50, 50, 1
 # Resource link strength
-delta = 0.2
+delta = 0.4
 # Max resource capacity
 Rmax = 100
 
@@ -82,7 +82,7 @@ m = G.number_of_edges() #Reassign in case rewire
 #Populate resources with random levels of stock
 Rmin = 50
 for j in resources:
-    G.nodes[j]['stock'] = random.sample(range(Rmin,Rmax),1)[0]
+    G.nodes[j]['stock'] = 100 #random.sample(range(Rmin,Rmax),1)[0]
     
 # Populate social nodes and their level of cooperation
 # Each social node has some population of extractors
@@ -90,11 +90,11 @@ for j in resources:
 popMin = 30
 popMax = 50
 
-fcMin = 20
-fcMax = 70
+fcMin = 40
+fcMax = 60
 for k in groups:
-    G.nodes[k]['pop'] = random.sample(range(popMin,popMax),1)[0]
-    G.nodes[k]['fc'] = random.sample(range(fcMin,fcMax),1)[0]/100.
+    G.nodes[k]['pop'] = 50#random.sample(range(popMin,popMax),1)[0]
+    G.nodes[k]['fc'] =  random.sample(range(fcMin,fcMax),1)[0]/100.
 
 
 
@@ -165,31 +165,47 @@ def countFrac(G):
     totalCoops = sum(coopPops)
     totalFc = totalCoops/population
     return totalFc
-        
+
+def payoffNode(G,k):
+    #Calculate the payoffs for cooperators and defectors in chosen node
+    fc = G.nodes[k]['fc']
+    pop = G.nodes[k]['pop']
+    #Extraction effort
+    E = ext(fc, pop)
+    #Local resource
+    extracting = resources.intersection([j for j in G.neighbors(k)])
+    R = sum([G.nodes[j]['stock'] for j in extracting])
+    
+    pic = ec*((cobbdoug(E,R)/E)-w)
+    pid = ed*((cobbdoug(E,R)/E)-w)
+    
+    return (pic, pid)
+    
 
 def utilNode(G, k):
     # Calculate payoffs for cooperators and defectors
     # within a given node in network
     fc = G.nodes[k]['fc']
-    pop = G.nodes[k]['pop']
-    fcNebs = countCoops(G,k)[0]
-    
-    # Node effort
-    E = ext(fc,pop)
-    
-    # How much is this community extracting in total?
-    extracting = resources.intersection([j for j in G.neighbors(k)])
-    R = sum([G.nodes[j]['stock'] for j in extracting])
-    
-    #Payoffs
-    pic = ec*((cobbdoug(E,R)/E)-w)
-    pid = ed*((cobbdoug(E,R)/E)-w)
+    neighbours = [j for j in G.neighbors(k)]
+    nebs = groups.intersection(neighbours)
+    nebs = list(nebs)
+        
+    pic, pid = payoffNode(G, k)
+
     H = (pid-pic)/pid
     #Need to calculate H for external communities
+    Hs = []
+    for neb in nebs:
+        nebc, nebd = payoffNode(G,neb)
+        nebH = (nebd-nebc)/nebd
+        Hs.append(nebH)
+        
+    nebFcs = [G.nodes[j]['fc'] for j in nebs]
+    gomps = list(map(gompertz, nebFcs))
+    prods = [j*k for j in Hs for k in gomps]
     #Utilities
     uc = pic
-    ud = pid - H*(((1-lam/2))*gompertz(fc)+(lam/2)*gompertz(fcNebs)) 
-    #Consider weighted average implementation
+    ud = pid - H*(1-lam/2)*gompertz(fc)-(lam/2)*sum(prods) 
         
     return (uc,ud)
 
@@ -215,7 +231,7 @@ plt.title('Initial Network')
 plt.show()
     
 t = 0
-tEnd = 400 #end point
+tEnd = 600 #end point
 dt = 0.1 #time step
 # Lists to store values to plot later
 time = [0]
@@ -394,5 +410,5 @@ def mcounter(G, motifs):
     
     return mcount
 
-count = mcounter(G,motifs)
-print(count)
+#count = mcounter(G,motifs)
+#print(count)
