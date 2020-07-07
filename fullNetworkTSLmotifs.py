@@ -17,7 +17,7 @@ mu = 1.2
 ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
 ed = mu*ec
 w = 15
-lam = 0.05 # Social ostracism coupling
+lam = 0.5 # Social ostracism coupling
 
 # Resource stock parameters
 c, d, q = 50, 50, 1
@@ -203,9 +203,12 @@ def utilNode(G, k):
     nebFcs = [G.nodes[j]['fc'] for j in nebs]
     gomps = list(map(gompertz, nebFcs))
     prods = [j*k for j in Hs for k in gomps]
+    if len(prods) == 0: 
+        avg = 0
+    else: avg = sum(prods)/len(prods)
     #Utilities
     uc = pic
-    ud = pid - H*(1-lam/2)*gompertz(fc)-(lam/2)*sum(prods) 
+    ud = pid - H*(1-lam/2)*gompertz(fc)-(lam/2)*avg
         
     return (uc,ud)
 
@@ -231,7 +234,7 @@ plt.title('Initial Network')
 plt.show()
     
 t = 0
-tEnd = 600 #end point
+tEnd = 300 #end point
 dt = 0.1 #time step
 # Lists to store values to plot later
 time = [0]

@@ -73,12 +73,12 @@ def generateNet(nSoc,nRes, m, rRange = (50, 100), popRange = (30, 50), fcRange =
     fcMin, fcMax = fcRange
     
     for k in groups:
-        G.nodes[k]['pop'] = random.sample(range(popMin,popMax),1)[0]
+        G.nodes[k]['pop'] = 50 #random.sample(range(popMin,popMax),1)[0]
         G.nodes[k]['fc'] = random.sample(range(fcMin,fcMax),1)[0]/100.
         
     return G
 
-iterations = 20
+iterations = 50
 
 mcount = {key:[] for key in motifs.keys()}
 nSoc = 20
@@ -101,7 +101,11 @@ for motif in mcount:
     tau, p = kendalltau(mcount[motif],results)
     tauVals[motif] = (tau, p)
     
-
+# Save results
+from datetime import date
+np.save('corrResults'+str(date.today())+'.npy',tauVals)
+np.save('motifCounts'+str(date.today())+'.npy',mcount)
+np.save('fcResults'+str(date.today())+'.npy',results) 
 
 
 

@@ -8,7 +8,7 @@ import numpy as np
 import networkx as nx
 
 w = 15
-lam = 0.1 # Social ostracism coupling
+lam = 0.05 # Social ostracism coupling
 
 # Resource stock parameters
 c, d, q = 50, 50, 1
