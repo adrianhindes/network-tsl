@@ -13,11 +13,11 @@ import networkx.algorithms.isomorphism as iso
 from tqdm import tqdm
 
 # Social parameters
-mu = 1.2
+mu = 1.5
 ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
 ed = mu*ec
 w = 15
-lam = 0.5 # Social ostracism coupling
+lam = 0.8 # Social ostracism coupling
 
 # Resource stock parameters
 c, d, q = 50, 50, 1
@@ -37,7 +37,7 @@ n = nSocial + nResource
 #number of links
 #May change depending on how network is generated, links are added
 #if an isolated node is made
-m = 50
+m = 80
 
 # Network 
 
@@ -82,7 +82,7 @@ m = G.number_of_edges() #Reassign in case rewire
 #Populate resources with random levels of stock
 Rmin = 50
 for j in resources:
-    G.nodes[j]['stock'] = 100 #random.sample(range(Rmin,Rmax),1)[0]
+    G.nodes[j]['stock'] = 20  #random.sample(range(Rmin,Rmax),1)[0]
     
 # Populate social nodes and their level of cooperation
 # Each social node has some population of extractors
@@ -94,7 +94,7 @@ fcMin = 40
 fcMax = 60
 for k in groups:
     G.nodes[k]['pop'] = 50#random.sample(range(popMin,popMax),1)[0]
-    G.nodes[k]['fc'] =  random.sample(range(fcMin,fcMax),1)[0]/100.
+    G.nodes[k]['fc'] = random.sample(range(fcMin,fcMax),1)[0]/100.
 
 
 
@@ -189,7 +189,7 @@ def utilNode(G, k):
     neighbours = [j for j in G.neighbors(k)]
     nebs = groups.intersection(neighbours)
     nebs = list(nebs)
-        
+         
     pic, pid = payoffNode(G, k)
 
     H = (pid-pic)/pid

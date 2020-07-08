@@ -103,7 +103,7 @@ def payoffNode(G,k):
     return (pic, pid)
     
 
-def utilNode(G, k):
+def utilNode(G, k, lam=0.05):
     # Calculate payoffs for cooperators and defectors
     # within a given node in network
     groups = [n for n in G.nodes() if G.nodes[n]['type'] == 'social']
@@ -126,9 +126,12 @@ def utilNode(G, k):
     nebFcs = [G.nodes[j]['fc'] for j in nebs]
     gomps = list(map(gompertz, nebFcs))
     prods = [j*k for j in Hs for k in gomps]
+    if len(prods) == 0: 
+        avg = 0
+    else: avg = sum(prods)/len(prods)
     #Utilities
     uc = pic
-    ud = pid - H*(1-lam/2)*gompertz(fc)-(lam/2)*sum(prods) 
+    ud = pid - H*(1-lam/2)*gompertz(fc)-(lam/2)*avg
         
     return (uc,ud)
     
@@ -137,7 +140,7 @@ def utilNode(G, k):
 # -------------------------
 # -------------------------
 
-def TSL(G):
+def TSL(G,lam=0.5):
     # G = input network 
     # (must be bimodal with 'type' = 'social' and 'ecological')
     # Runs TSL model on given network
@@ -151,7 +154,7 @@ def TSL(G):
     
 
     t = 0
-    tEnd = 400 #end point
+    tEnd = 250 #end point
     dt = 0.1 #time step
     # Lists to store values to plot later
     time = [0]
@@ -172,7 +175,7 @@ def TSL(G):
         for k in groups:
             F = G.nodes[k]['fc']
         
-            Uc, Ud = utilNode(G,k)
+            Uc, Ud = utilNode(G,k,lam=lam)
         
             dfc = F*(1 - F)*(Uc - Ud)*dt
         

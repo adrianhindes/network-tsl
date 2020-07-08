@@ -78,7 +78,7 @@ def generateNet(nSoc,nRes, m, rRange = (50, 100), popRange = (30, 50), fcRange =
         
     return G
 
-iterations = 50
+iterations = 200
 
 mcount = {key:[] for key in motifs.keys()}
 nSoc = 20
