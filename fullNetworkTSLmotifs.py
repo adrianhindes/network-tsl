@@ -13,7 +13,7 @@ import networkx.algorithms.isomorphism as iso
 from tqdm import tqdm
 
 # Social parameters
-mu = 1.5
+mu = 5
 ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
 ed = mu*ec
 w = 15
@@ -194,21 +194,21 @@ def utilNode(G, k):
 
     H = (pid-pic)/pid
     #Need to calculate H for external communities
-    Hs = []
-    for neb in nebs:
-        nebc, nebd = payoffNode(G,neb)
-        nebH = (nebd-nebc)/nebd
-        Hs.append(nebH)
+        # Edit: unecessary, H takes a constant value dependent on mu and ec
+    #Hs = []
+    #for neb in nebs:
+     #   nebc, nebd = payoffNode(G,neb)
+      #  nebH = (nebd-nebc)/nebd
+       # Hs.append(nebH)
         
     nebFcs = [G.nodes[j]['fc'] for j in nebs]
     gomps = list(map(gompertz, nebFcs))
-    prods = [j*k for j in Hs for k in gomps]
-    if len(prods) == 0: 
+    if len(gomps) == 0: 
         avg = 0
-    else: avg = sum(prods)/len(prods)
+    else: avg = sum(gomps)/len(gomps)
     #Utilities
     uc = pic
-    ud = pid - H*(1-lam/2)*gompertz(fc)-(lam/2)*avg
+    ud = pid - H*((1-lam/2)*gompertz(fc)-(lam/2)*avg)
         
     return (uc,ud)
 

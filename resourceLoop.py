@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jul  2 13:40:24 2020
+Created on Tue Feb 26 14:55:35 2019
 
-@author: adria
+@author: hindesa
 """
-
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,11 +11,9 @@ import networkx as nx
 from tqdm import tqdm
 from networkTSLfunc import *
 from motifCount import *
+from scipy.stats import kendalltau
 
 
-nSoc = 20
-nRes = 5
-m = 80
 def generateNet(nSoc,nRes, m, rRange = (50, 100), popRange = (30, 50), fcRange = (40, 60)):
     #Generate social-ecological network for use in TSL model
     n = nSoc + nRes
@@ -65,29 +62,39 @@ def generateNet(nSoc,nRes, m, rRange = (50, 100), popRange = (30, 50), fcRange =
     fcMin, fcMax = fcRange
     
     for k in groups:
-        G.nodes[k]['pop'] = random.sample(range(popMin,popMax),1)[0]
+        G.nodes[k]['pop'] = 50 #random.sample(range(popMin,popMax),1)[0]
         G.nodes[k]['fc'] = random.sample(range(fcMin,fcMax),1)[0]/100.
         
     return G
 
-G = generateNet(nSoc,nRes,m)
+#Number of iterations per no. edges
+    #Won't be exact due to adjustment after the fact
+iterations = 5
 
-fcMin = 20
-fcMax = 80
 
-iters = 20
+nSoc = 20
+nRes = 5
+n = nSoc + nRes
+
+
 cList = np.linspace(0,70,100)
-n = 0
-#groups = [k for k in G.nodes() if G.nodes[k]['type'] == 'social']
-ys = []
-for c in tqdm(cList):
-    # Reassign starting values
- #   for k in groups:
-  #      G.nodes[k]['fc'] =  random.sample(range(fcMin,fcMax),1)[0]/100.
-    t, res = TSL(G)
-    
-    ys.append(res[-1])
-    
 
-plt.scatter(cList,res)
+results = []
+
+for c in tqdm(cList): 
+    G = generateNet(nSoc, nRes, m)
+
+    t, res = TSL(G,lam=0.5,c=c)
+    results.append(res[-1])
+
+
+plt.scatter(cList,results)
+plt.xlabel('Resource Inflow')
+plt.ylabel('Total cooperation fraction')
+
+np.save('c-res.npy',results)
+
+
+
+
 

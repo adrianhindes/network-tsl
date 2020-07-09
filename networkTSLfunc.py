@@ -20,9 +20,10 @@ Rmax = 250
 # Social parameters
 mu = 1.2
 ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
-ed = mu*ec
+#ed = mu*ec
 
-def ext(f,pop):
+def ext(f,pop,mu):
+    ed = mu*ec
     E = pop*(f*ec+(1-f)*ed)
     return E
 
@@ -85,14 +86,15 @@ def countFrac(G):
     totalFc = totalCoops/population
     return totalFc
 
-def payoffNode(G,k):
+def payoffNode(G, k, mu):
+    ed = mu*ec
     #Calculate the payoffs for cooperators and defectors in chosen node
     resources = [n for n in G.nodes() if G.nodes[n]['type'] == 'ecological']
 
     fc = G.nodes[k]['fc']
     pop = G.nodes[k]['pop']
     #Extraction effort
-    E = ext(fc, pop)
+    E = ext(fc, pop, mu)
     #Local resource
     extracting = set(resources).intersection([j for j in G.neighbors(k)])
     R = sum([G.nodes[j]['stock'] for j in extracting])
@@ -103,7 +105,7 @@ def payoffNode(G,k):
     return (pic, pid)
     
 
-def utilNode(G, k, lam=0.05):
+def utilNode(G, k, lam, mu):
     # Calculate payoffs for cooperators and defectors
     # within a given node in network
     groups = [n for n in G.nodes() if G.nodes[n]['type'] == 'social']
@@ -113,13 +115,13 @@ def utilNode(G, k, lam=0.05):
     nebs = set(groups).intersection(neighbours)
     nebs = list(nebs)
         
-    pic, pid = payoffNode(G, k)
+    pic, pid = payoffNode(G, k, mu)
 
     H = (pid-pic)/pid
     #Need to calculate H for external communities
     Hs = []
     for neb in nebs:
-        nebc, nebd = payoffNode(G,neb)
+        nebc, nebd = payoffNode(G, neb, mu)
         nebH = (nebd-nebc)/nebd
         Hs.append(nebH)
         
@@ -140,7 +142,7 @@ def utilNode(G, k, lam=0.05):
 # -------------------------
 # -------------------------
 
-def TSL(G,lam=0.5):
+def TSL(G,lam=0.5,c=50,mu=1.2):
     # G = input network 
     # (must be bimodal with 'type' = 'social' and 'ecological')
     # Runs TSL model on given network
@@ -175,7 +177,7 @@ def TSL(G,lam=0.5):
         for k in groups:
             F = G.nodes[k]['fc']
         
-            Uc, Ud = utilNode(G,k,lam=lam)
+            Uc, Ud = utilNode(G,k,lam=lam,mu=mu)
         
             dfc = F*(1 - F)*(Uc - Ud)*dt
         
@@ -191,7 +193,7 @@ def TSL(G,lam=0.5):
             # Get fraction of cooperators and no. extractors in neighbourhood
             fc, nebs = countCoops(G, k)
 
-            dRself = c - d*(R/Rmax)**2 - q*ext(fc, nebs)*R
+            dRself = c - d*(R/Rmax)**2 - q*ext(fc, nebs, mu)*R
             nebResources = resources.intersection([j for j in G.neighbors(k)])
             differences = []
             
