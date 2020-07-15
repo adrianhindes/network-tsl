@@ -13,11 +13,11 @@ import networkx.algorithms.isomorphism as iso
 from tqdm import tqdm
 
 # Social parameters
-mu = 5
+mu = 1.2
 ec = 0.483/50. #level of effort (cooperators) #level of effort (defectors)
 ed = mu*ec
 w = 15
-lam = 0.8 # Social ostracism coupling
+lam = 1 # Social ostracism coupling
 
 # Resource stock parameters
 c, d, q = 50, 50, 1
@@ -41,8 +41,8 @@ m = 80
 
 # Network 
 
-G = nx.gnm_random_graph(n, m)
-
+#G = nx.gnm_random_graph(n, m)
+G = nx.complete_graph(n)
 
 
 # Allocate social and ecological nodes
@@ -90,8 +90,8 @@ for j in resources:
 popMin = 30
 popMax = 50
 
-fcMin = 40
-fcMax = 60
+fcMin = 20
+fcMax = 80
 for k in groups:
     G.nodes[k]['pop'] = 50#random.sample(range(popMin,popMax),1)[0]
     G.nodes[k]['fc'] = random.sample(range(fcMin,fcMax),1)[0]/100.
@@ -208,7 +208,7 @@ def utilNode(G, k):
     else: avg = sum(gomps)/len(gomps)
     #Utilities
     uc = pic
-    ud = pid - H*((1-lam/2)*gompertz(fc)-(lam/2)*avg)
+    ud = pid - H*((1-lam/2)*gompertz(fc)+(lam/2)*avg)
         
     return (uc,ud)
 

@@ -46,12 +46,10 @@ edgeConfigs = { 'direct1': [(0,1), (0,3), (1,2)],
                 'asymmShare2': [(0,2), (0,3), (1,2), (0,1)],
                 'asymmShare3': [(0,2), (0,3), (1,2), (2,3)],
                 'asymmShare4': [(0,2), (0,3), (1,2), (2,3), (0,1)],
-                'mediated1': [(0,1), (0,3), (2,3)],
-                'mediated2': [(0,1), (0,3), (0,2), (2,3)]
                 }
 
 #Choose which motif to run
-motif = 'asymmShare4'
+motif = 'mediated2'
 G = nx.Graph()
 G.add_nodes_from(nodes)
 G.add_edges_from(edgeConfigs[motif])
@@ -64,23 +62,23 @@ pos = {0: [-0.4, 0.4], 1:[0.4,0.4], 2:[0.4,-0.4], 3:[-0.4,-0.4]}
 Rmin = 50
 
 for j in resources:
-    G.node[j]['type'] = 'ecological'
-    G.node[j]['stock'] = random.sample(range(Rmin,Rmax),1)[0]
+    G.nodes[j]['type'] = 'ecological'
+    G.nodes[j]['stock'] = random.sample(range(Rmin,Rmax),1)[0]
     
 # Populate social nodes and their level of cooperation
 # Each social node has some population of extractors
 # Preassign proportion of extractors within community that are cooperating
 pop1 = 50
 pop2 = 50
-fc1 = 0.1
-fc2 = 0.8
+fc1 = 0.5
+fc2 = 0.5
 
-G.node[0]['type'] = 'social'
-G.node[1]['type'] = 'social'
-G.node[0]['pop'] = pop1
-G.node[1]['pop'] = pop2
-G.node[0]['fc'] = fc1
-G.node[1]['fc'] = fc2
+G.nodes[0]['type'] = 'social'
+G.nodes[1]['type'] = 'social'
+G.nodes[0]['pop'] = pop1
+G.nodes[1]['pop'] = pop2
+G.nodes[0]['fc'] = fc1
+G.nodes[1]['fc'] = fc2
 
 
 
@@ -121,18 +119,18 @@ def countCoops(G,k):
     neighbours = [j for j in G.neighbors(k)]
     communities = groups.intersection(neighbours)
     
-    if G.node[k]['type'] == 'social':
-        nebCoops = [G.node[j]['fc'] for j in communities]
-        fc = (sum(nebCoops) + G.node[k]['fc'])/(len(nebCoops) + 1)
-        totalPop = sum([G.node[j]['pop'] for j in communities]) + G.node[k]['pop']
+    if G.nodes[k]['type'] == 'social':
+        nebCoops = [G.nodes[j]['fc'] for j in communities]
+        fc = (sum(nebCoops) + G.nodes[k]['fc'])/(len(nebCoops) + 1)
+        totalPop = sum([G.nodes[j]['pop'] for j in communities]) + G.nodes[k]['pop']
     else:
         if len(communities) == 0:
             fc = 0
             totalPop = 0
         else:
-            nebCoops = [G.node[j]['fc'] for j in communities]
+            nebCoops = [G.nodes[j]['fc'] for j in communities]
             fc = sum(nebCoops)/len(communities)
-            totalPop = sum([G.node[j]['pop'] for j in communities])
+            totalPop = sum([G.nodes[j]['pop'] for j in communities])
 
     return (fc, totalPop)
 
@@ -140,8 +138,8 @@ def countCoops(G,k):
 def utilNode(G, k):
     # Calculate payoffs for cooperators and defectors
     # within a given node in network
-    fc = G.node[k]['fc']
-    pop = G.node[k]['pop']
+    fc = G.nodes[k]['fc']
+    pop = G.nodes[k]['pop']
     fcNebs = countCoops(G,k)[0]
     
     # Node effort
@@ -149,7 +147,7 @@ def utilNode(G, k):
     
     # How much is this community extracting in total?
     extracting = resources.intersection([j for j in G.neighbors(k)])
-    R = sum([G.node[j]['stock'] for j in extracting])
+    R = sum([G.nodes[j]['stock'] for j in extracting])
     
     #Payoffs
     pic = ec*((cobbdoug(E,R)/E)-w)
@@ -168,8 +166,8 @@ def utilNode(G, k):
 colours = []
     
 for k in range(4):
-    if G.node[k]['type'] == 'social':
-        if G.node[k]['fc'] > 0.5:
+    if G.nodes[k]['type'] == 'social':
+        if G.nodes[k]['fc'] > 0.5:
             colours.append('b')
         else:
             colours.append('r')
@@ -192,7 +190,7 @@ time = [0]
 
 tempR = []
 for k in resources:
-    stock = G.node[k]['stock']
+    stock = G.nodes[k]['stock']
     tempR.append((k, stock))
     
 rHistory = {node:[s] for (node, s) in tempR}
@@ -200,7 +198,7 @@ rHistory = {node:[s] for (node, s) in tempR}
 tempF = []
 for k in groups:
     node = k
-    frac = G.node[k]['fc']
+    frac = G.nodes[k]['fc']
     tempF.append((node, frac))
 
 fHistory = {node:[s] for (node, s) in tempF}
@@ -214,32 +212,32 @@ while t<tEnd:
     F = np.zeros(len(groups))
     
     for k in groups:
-        F = G.node[k]['fc']
+        F = G.nodes[k]['fc']
         
         Uc, Ud = utilNode(G,k)
         
         dfc = F*(1 - F)*(Uc - Ud)*dt
         
         F += dfc
-        G.node[k]['fc'] += dfc
+        G.nodes[k]['fc'] += dfc
         fHistory[k].append(F)
     
     # Update resources
     # List to store present resource stocks
     for k in resources:
-        R = G.node[k]['stock']
+        R = G.nodes[k]['stock']
         
         # Get fraction of cooperators and no. extractors in neighbourhood
         fc, nebs = countCoops(G, k)
 
         dRself = c - d*(R/Rmax)**2 - q*ext(fc, nebs)*R
         nebResources = resources.intersection([j for j in G.neighbors(k)])
-        differences = [delta*(G.node[j]['stock'] - R)  for j in nebResources]
+        differences = [delta*(G.nodes[j]['stock'] - R)  for j in nebResources]
         inOutFlow = sum(differences)
         dR = (dRself + inOutFlow)*dt
         
         R += dR
-        G.node[k]['stock'] += dR
+        G.nodes[k]['stock'] += dR
         rHistory[k].append(R)
 
 
@@ -253,8 +251,8 @@ while t<tEnd:
 colours = []
     
 for k in range(4):
-    if G.node[k]['type'] == 'social':
-        if G.node[k]['fc'] > 0.5:
+    if G.nodes[k]['type'] == 'social':
+        if G.nodes[k]['fc'] > 0.5:
             colours.append('b')
         else:
             colours.append('r')

@@ -63,7 +63,7 @@ def generateNet(nSoc,nRes, m, rRange = (50, 100), popRange = (30, 50), fcRange =
     #Populate resources with random levels of stock
     Rmin, Rmax = rRange
     for j in resources:
-        G.nodes[j]['stock'] = random.sample(range(Rmin,Rmax),1)[0]
+        G.nodes[j]['stock'] = 50 #random.sample(range(Rmin,Rmax),1)[0]
     
     # Populate social nodes and their level of cooperation
     # Each social node has some population of extractors
@@ -74,7 +74,7 @@ def generateNet(nSoc,nRes, m, rRange = (50, 100), popRange = (30, 50), fcRange =
     
     for k in groups:
         G.nodes[k]['pop'] = 50 #random.sample(range(popMin,popMax),1)[0]
-        G.nodes[k]['fc'] = random.sample(range(fcMin,fcMax),1)[0]/100.
+        G.nodes[k]['fc'] = 0.5 #random.sample(range(fcMin,fcMax),1)[0]/100.
         
     return G
 
@@ -83,7 +83,7 @@ iterations = 200
 mcount = {key:[] for key in motifs.keys()}
 nSoc = 20
 nRes = 5
-m = 50
+m = 70
 
 results = []
 for k in tqdm(range(iterations)):
